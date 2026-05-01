@@ -2,7 +2,24 @@ from pathlib import Path
 import pandas as pd
 import xml.etree.ElementTree as ET
 
-base_dir = Path("/Users/brent/Documents/Baseball Annotations")
+### Data Path
+base_dir = Path("/Users/brent/Documents/GitHub/econ8310-semesterProject/Baseball Annotations")
+
+### % of Ball That Has to Be in Strikezone
+def overlap_percent(ball_box, zone_box):
+    x_left = max(ball_box["xtl"], zone_box["xtl"])
+    y_top = max(ball_box["ytl"], zone_box["ytl"])
+    x_right = min(ball_box["xbr"], zone_box["xbr"])
+    y_bottom = min(ball_box["ybr"], zone_box["ybr"])
+
+    if x_right <= x_left or y_bottom <= y_top:
+        return 0.0
+
+    overlap_area = (x_right - x_left) * (y_bottom - y_top)
+    ball_area = (ball_box["xbr"] - ball_box["xtl"]) * (ball_box["ybr"] - ball_box["ytl"])
+
+    return overlap_area / ball_area
+
 
 rows = []
 
@@ -12,7 +29,7 @@ for folder in base_dir.iterdir():
 
     Strikezone = None
 
-    # --- First: find strike zone ---
+    ### Locate Strikezone 
     for file in folder.glob("*SZone.xml"):
         tree = ET.parse(file)
         root = tree.getroot()
@@ -20,14 +37,19 @@ for folder in base_dir.iterdir():
         for track in root.findall(".//track"):
             if track.attrib.get("label") == "Strikezone":
                 box = track.find("box")
-                Strikezone = {
-                    "xtl": float(box.attrib["xtl"]),
-                    "ytl": float(box.attrib["ytl"]),
-                    "xbr": float(box.attrib["xbr"]),
-                    "ybr": float(box.attrib["ybr"]),
-                }
+                if box is not None:
+                    Strikezone = {
+                        "xtl": float(box.attrib["xtl"]),
+                        "ytl": float(box.attrib["ytl"]),
+                        "xbr": float(box.attrib["xbr"]),
+                        "ybr": float(box.attrib["ybr"]),
+                    }
 
-    # --- Then: parse baseballs ---
+    if Strikezone is None:
+        print(f"⚠️ No strike zone found in {folder}")
+        continue
+
+    ### Parse baseball file
     for file in folder.glob("IMG_*.xml"):
         tree = ET.parse(file)
         root = tree.getroot()
@@ -39,9 +61,11 @@ for folder in base_dir.iterdir():
                 continue
 
             for box in track.findall("box"):
+                ### Ball not visible ignore
                 if int(box.attrib["outside"]) == 1:
                     continue
 
+                ### Ball Moving?
                 moving_attr = box.find("attribute[@name='moving']")
                 moving = moving_attr.text.lower() == "true" if moving_attr is not None else False
 
@@ -53,26 +77,35 @@ for folder in base_dir.iterdir():
                 xbr = float(box.attrib["xbr"])
                 ybr = float(box.attrib["ybr"])
 
-                center_x = (xtl + xbr) / 2
-                center_y = (ytl + ybr) / 2
+                ball_box = {
+                    "xtl": xtl,
+                    "ytl": ytl,
+                    "xbr": xbr,
+                    "ybr": ybr
+                }
 
-                in_zone = False
-                if Strikezone:
-                    in_zone = (
-                        Strikezone["xtl"] <= center_x <= Strikezone["xbr"] and
-                        Strikezone["ytl"] <= center_y <= Strikezone["ybr"]
-                    )
+                overlap = overlap_percent(ball_box, Strikezone)
+                is_strike = overlap >= 0.33
 
                 rows.append({
                     "folder": folder.name,
                     "video": source,
                     "frame": int(box.attrib["frame"]),
-                    "center_x": center_x,
-                    "center_y": center_y,
-                    "in_Strikezone": in_zone
+                    "ball_xtl": xtl,
+                    "ball_ytl": ytl,
+                    "ball_xbr": xbr,
+                    "ball_ybr": ybr,
+                    "overlap_percent": overlap,
+                    "is_strike": is_strike
                 })
 
+
+### Dataframe create
 df = pd.DataFrame(rows)
 
+print("\nPreview:")
 print(df.head())
-print(df["in_Strikezone"].value_counts())
+
+print("\nStrike counts:")
+print(df["is_strike"].value_counts())
+
