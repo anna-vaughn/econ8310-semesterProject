@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>2218351</id>
+      <name>Strikezone</name>
+      <size>68</size>
+      <mode>interpolation</mode>
+      <overlap>5</overlap>
+      <bugtracker></bugtracker>
+      <created>2026-05-01 02:20:23.700996+00:00</created>
+      <updated>2026-05-01 02:25:22.855072+00:00</updated>
+      <subset>default</subset>
+      <start_frame>0</start_frame>
+      <stop_frame>67</stop_frame>
+      <frame_filter></frame_filter>
+      <segments>
+        <segment>
+          <id>3935459</id>
+          <start>0</start>
+          <stop>67</stop>
+          <url>https://app.cvat.ai/api/tasks/2218351/dataset/export/api/jobs/3937070</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>brent6</username>
+        <email>bre5551@gmail.com</email>
+      </owner>
+      <assignee></assignee>
+      <labels>
+        <label>
+          <name>baseball</name>
+          <color>#33ddff</color>
+          <type>rectangle</type>
+          <attributes>
+            <attribute>
+              <name>moving</name>
+              <mutable>False</mutable>
+              <input_type>checkbox</input_type>
+              <default_value>false</default_value>
+              <values>false</values>
+            </attribute>
+          </attributes>
+        </label>
+        <label>
+          <name>Strikezone</name>
+          <color>#fa32b7</color>
+          <type>rectangle</type>
+          <attributes>
+          </attributes>
+        </label>
+      </labels>
+      <original_size>
+        <width>2160</width>
+        <height>3840</height>
+      </original_size>
+      <source>IMG_0173.mov</source>
+    </task>
+    <dumped>2026-05-01 02:25:45.571052+00:00</dumped>
+  </meta>
+  <track id="0" label="Strikezone" source="manual">
+    <box frame="0" keyframe="1" outside="0" occluded="0" xtl="955.00" ytl="1119.40" xbr="1446.20" ybr="2297.69" z_order="0">
+    </box>
+    <box frame="1" keyframe="1" outside="1" occluded="0" xtl="955.00" ytl="1119.40" xbr="1446.20" ybr="2297.69" z_order="0">
+    </box>
+  </track>
+</annotations>

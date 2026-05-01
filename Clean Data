@@ -1,0 +1,78 @@
+from pathlib import Path
+import pandas as pd
+import xml.etree.ElementTree as ET
+
+base_dir = Path("/Users/brent/Documents/Baseball Annotations")
+
+rows = []
+
+for folder in base_dir.iterdir():
+    if not folder.is_dir():
+        continue
+
+    Strikezone = None
+
+    # --- First: find strike zone ---
+    for file in folder.glob("*SZone.xml"):
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        for track in root.findall(".//track"):
+            if track.attrib.get("label") == "Strikezone":
+                box = track.find("box")
+                Strikezone = {
+                    "xtl": float(box.attrib["xtl"]),
+                    "ytl": float(box.attrib["ytl"]),
+                    "xbr": float(box.attrib["xbr"]),
+                    "ybr": float(box.attrib["ybr"]),
+                }
+
+    # --- Then: parse baseballs ---
+    for file in folder.glob("IMG_*.xml"):
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        source = root.findtext(".//source")
+
+        for track in root.findall(".//track"):
+            if track.attrib.get("label") != "baseball":
+                continue
+
+            for box in track.findall("box"):
+                if int(box.attrib["outside"]) == 1:
+                    continue
+
+                moving_attr = box.find("attribute[@name='moving']")
+                moving = moving_attr.text.lower() == "true" if moving_attr is not None else False
+
+                if not moving:
+                    continue
+
+                xtl = float(box.attrib["xtl"])
+                ytl = float(box.attrib["ytl"])
+                xbr = float(box.attrib["xbr"])
+                ybr = float(box.attrib["ybr"])
+
+                center_x = (xtl + xbr) / 2
+                center_y = (ytl + ybr) / 2
+
+                in_zone = False
+                if Strikezone:
+                    in_zone = (
+                        Strikezone["xtl"] <= center_x <= Strikezone["xbr"] and
+                        Strikezone["ytl"] <= center_y <= Strikezone["ybr"]
+                    )
+
+                rows.append({
+                    "folder": folder.name,
+                    "video": source,
+                    "frame": int(box.attrib["frame"]),
+                    "center_x": center_x,
+                    "center_y": center_y,
+                    "in_Strikezone": in_zone
+                })
+
+df = pd.DataFrame(rows)
+
+print(df.head())
+print(df["in_Strikezone"].value_counts())

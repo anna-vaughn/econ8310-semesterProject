@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>2218360</id>
+      <name>Szones</name>
+      <size>57</size>
+      <mode>interpolation</mode>
+      <overlap>5</overlap>
+      <bugtracker></bugtracker>
+      <created>2026-05-01 02:48:47.853228+00:00</created>
+      <updated>2026-05-01 02:49:52.728653+00:00</updated>
+      <subset>default</subset>
+      <start_frame>0</start_frame>
+      <stop_frame>56</stop_frame>
+      <frame_filter></frame_filter>
+      <segments>
+        <segment>
+          <id>3935480</id>
+          <start>0</start>
+          <stop>56</stop>
+          <url>https://app.cvat.ai/api/tasks/2218360/dataset/export/api/jobs/3937113</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>bre5551</username>
+        <email>blevin@unomaha.edu</email>
+      </owner>
+      <assignee></assignee>
+      <labels>
+        <label>
+          <name>Strikezone</name>
+          <color>#fa32b7</color>
+          <type>any</type>
+          <attributes>
+          </attributes>
+        </label>
+      </labels>
+      <original_size>
+        <width>3840</width>
+        <height>2160</height>
+      </original_size>
+      <source>IMG_0083.mov</source>
+    </task>
+    <dumped>2026-05-01 02:50:10.802452+00:00</dumped>
+  </meta>
+  <track id="0" label="Strikezone" source="manual">
+    <box frame="0" keyframe="1" outside="0" occluded="0" xtl="862.60" ytl="546.78" xbr="1395.90" ybr="1287.38" z_order="0">
+    </box>
+    <box frame="1" keyframe="1" outside="1" occluded="0" xtl="862.60" ytl="546.78" xbr="1395.90" ybr="1287.38" z_order="0">
+    </box>
+  </track>
+</annotations>
