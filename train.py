@@ -45,11 +45,7 @@ def collate_fn(batch):
     return frames, targets
 
 # Split up the dataset for training, validation, and testing.
-## First must sort our file names so we can ensure the match. 
-## Then run our XML and video files through our custom dataset.
-#s_vid_files = sorted(vid_files)
-#s_xml_files = sorted(xml_files)
-#full_ds = ConcatDataset([BaseballPitchDataset(x, y) for x, y in zip(s_vid_files, s_xml_files)])
+## First must run our XML and video files through our custom dataset.
 full_ds = ConcatDataset([BaseballPitchDataset(vid, xml) for vid, xml in pairs])
 n = len(full_ds)
 
@@ -118,5 +114,5 @@ for epoch in range(1, EPOCHS + 1):
     scheduler.step()
     print(f'Epoch {epoch:>2}/{EPOCHS}  Train Loss: {tr_loss:.4f}  Val Loss: {val_loss:.4f}')
 
-# Save weights below as the file specified at the top of this code section.
+# Save weights below as the file specified earlier.
 torch.save(model.state_dict(), store_weights)

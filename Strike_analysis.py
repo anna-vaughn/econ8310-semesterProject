@@ -140,7 +140,7 @@ def parse_baseballs(xml_file, strike_zone, folder_name):
     return rows
 
 
-### MAIN Pipelnei
+### MAIN Pipeline
 
 all_rows = []
 
