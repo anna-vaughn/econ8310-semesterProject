@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import multiprocessing
 from torch.utils.data import DataLoader, ConcatDataset, random_split
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
@@ -45,30 +46,32 @@ def collate_fn(batch):
     return frames, targets
 
 # Split up the dataset for training, validation, and testing.
-## First must run our XML and video files through our custom dataset.
-full_ds = ConcatDataset([BaseballPitchDataset(vid, xml) for vid, xml in pairs])
-n = len(full_ds)
+def split_data():
+    ## First must run our XML and video files through our custom dataset.
+    full_ds = ConcatDataset([BaseballPitchDataset(vid, xml) for vid, xml in pairs])
+    n = len(full_ds)
 
-# 80/20 split (train & val/test).
-n_test = int(0.20 * n)
-n_trainval = n - n_test
+    # 80/20 split (train & val/test).
+    n_test = int(0.20 * n)
+    n_trainval = n - n_test
 
-# 80/20 split (train/val), splits train set down further.
-n_val = int(0.20 * n_trainval)
-n_train = n_trainval - n_val
+    # 80/20 split (train/val), splits train set down further.
+    n_val = int(0.20 * n_trainval)
+    n_train = n_trainval - n_val
 
-# Randomly split the files up into their respective datasets.
-trainval_ds, test_ds = random_split(
-    full_ds, [n_trainval, n_test],
-    generator=torch.Generator().manual_seed(42))
-train_ds, val_ds = random_split(
-    trainval_ds, [n_train, n_val],
-    generator=torch.Generator().manual_seed(42))
+    # Randomly split the files up into their respective datasets.
+    trainval_ds, test_ds = random_split(
+        full_ds, [n_trainval, n_test],
+        generator=torch.Generator().manual_seed(42))
+    train_ds, val_ds = random_split(
+        trainval_ds, [n_train, n_val],
+        generator=torch.Generator().manual_seed(42))
 
-train_loader = DataLoader(train_ds, batch_size=4, collate_fn=collate_fn)
-val_loader = DataLoader(val_ds, batch_size=4, collate_fn=collate_fn)
-test_loader = DataLoader(test_ds, batch_size=4, collate_fn=collate_fn)
+    train_loader = DataLoader(train_ds, batch_size=4, collate_fn=collate_fn)
+    val_loader = DataLoader(val_ds, batch_size=4, collate_fn=collate_fn)
+    test_loader = DataLoader(test_ds, batch_size=4, collate_fn=collate_fn)
 
+    return train_loader, val_loader, test_loader
 
 # Build the model.
 def get_model(num_classes):
@@ -77,21 +80,8 @@ def get_model(num_classes):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     return model
 
-
-device = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device('cpu')
-# File name which will be used to store the weights for future use.
-store_weights = "bball_frcnn.pth"
-
-model = get_model(2).to(device)
-print(model.roi_heads.box_predictor)
-
-# Training the model:
-EPOCHS = 2
-optimizer = torch.optim.SGD(
-    model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-
-def run_epoch(loader, train=True):
+# The training loop:
+def run_epoch(model, loader, optimizer, device, train=True):
     model.train()
     total_loss = 0.0
     ctx = torch.enable_grad() if train else torch.no_grad()
@@ -108,11 +98,30 @@ def run_epoch(loader, train=True):
             total_loss += loss.item()
     return total_loss / len(loader)
 
-for epoch in range(1, EPOCHS + 1):
-    tr_loss = run_epoch(train_loader, train=True)
-    val_loss = run_epoch(val_loader,   train=False)
-    scheduler.step()
-    print(f'Epoch {epoch:>2}/{EPOCHS}  Train Loss: {tr_loss:.4f}  Val Loss: {val_loss:.4f}')
+# Trains the model and saves the resulting weights.
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    device = torch.accelerator.current_accelerator() if torch.accelerator.is_available() else torch.device('cpu')
+    # File name which will be used to store the weights for future use.
+    store_weights = "bball_frcnn.pth"
 
-# Save weights below as the file specified earlier.
-torch.save(model.state_dict(), store_weights)
+    model = get_model(2).to(device)
+    print(model.roi_heads.box_predictor)
+
+    # Placeholder for test_loader as we're only going to use train & val, since split_data() returns a tuple. 
+    train_loader, val_loader, _ = split_data()
+
+    # Training the model:
+    EPOCHS = 3
+    optimizer = torch.optim.SGD(
+        model.parameters(), lr=0.005, momentum=0.9, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+
+    for epoch in range(1, EPOCHS + 1):
+        tr_loss = run_epoch(model, train_loader, optimizer, device, train=True)
+        val_loss = run_epoch(model, val_loader, optimizer, device, train=False)
+        scheduler.step(val_loss)
+        print(f'Epoch {epoch:>2}/{EPOCHS}  Train Loss: {tr_loss:.4f}  Val Loss: {val_loss:.4f}')
+
+    # Save weights below as the file specified earlier.
+    torch.save(model.state_dict(), store_weights)
