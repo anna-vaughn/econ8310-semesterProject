@@ -143,32 +143,39 @@ if __name__ == "__main__":
     model_weights = PROJECT_ROOT / 'bball_frcnn.pth' 
     trained_model = load_trained_model(str(model_weights))
 
-    #UPDATE THIS PATH TO WHICHEVER VIDEO YOU WANT EVALUATED
-    input_video = PROJECT_ROOT / "Baseball Videos" / "IMG_0030.mov"
-    vid_name = os.path.splitext(os.path.basename(input_video))[0]
-
-    if input_video == '':
-        print("Hey! Please add your local video path to the 'input_video' variable.")
-    else:
-        #Find the SZone file in the "30 to 39" folder 
-        ## UPDATE PATH IF USING SZone ANNOTATIONS FOR ANOTHER GROUPING.
-        annotation_folder = PROJECT_ROOT / "Baseball Annotations" / "30 to 39"
-        szone_files = list(annotation_folder.glob("*SZone.xml"))
+    VID_DIR = PROJECT_ROOT / "Baseball Videos"
         
+    annotation_folder = PROJECT_ROOT / "Baseball Annotations"
+    output_dir = PROJECT_ROOT / "Output" / "Annotated_Videos"
+    output_dir.mkdir(parents=True, exist_ok=True)
+        
+    print("Starting batch processing...")
+        
+    #Loop through every subfolder
+    for subfolder in annotation_folder.iterdir():
+        if not subfolder.is_dir():
+            continue
+            
+        szone_files = list(subfolder.glob("*SZone.xml"))
         if not szone_files:
-            print(f"Error: Could not find an SZone.xml file in {annotation_folder}")
-        else:
-            strike_zone_xml = str(szone_files[0]) # Grabs the correct SZone file 
+            continue
             
-            #Setup output path
-            output_dir = PROJECT_ROOT / "Output"
-            output_dir.mkdir(exist_ok=True)
-            output_video = str(output_dir / f'{vid_name}_annotated.mp4')
+        strike_zone_xml = str(szone_files[0])
+        
+        pitch_xmls = [f for f in subfolder.glob("*.xml") if "SZone" not in f.name]
+        
+        for xml_file in pitch_xmls:
+            video_name = xml_file.stem + ".mov"
+            input_video = VID_DIR / video_name
             
-            #Evaluate
-            print(f"Evaluating {input_video}...")
-            print(f"Using Strike Zone from: {strike_zone_xml}")
-            evaluate_video(trained_model, input_video, strike_zone_xml, output_video)
+            if not input_video.exists():
+                print(f"Skipping {video_name}: Could not find video in {VID_DIR}.")
+                continue
+                
+            output_video = str(output_dir / f"annotated_{video_name}.mp4")
+            
+            #Evaluate and generate the video
+            print(f"\nEvaluating {video_name} using zone from {subfolder.name}...")
+            evaluate_video(trained_model, str(input_video), strike_zone_xml, output_video)
 
-#How to run:
-#evaluate_video(model, 'video.mov', 'video_SZone.xml', 'output.mp4')
+
