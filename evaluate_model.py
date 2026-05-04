@@ -63,9 +63,10 @@ _, _, test_loader = split_data()
 print(f"\nRunning evaluation over {len(test_loader)} batches...\n")
 results = evaluate(model, test_loader, confidence_threshold=confidence)
 
-# Get the two metrics we care about for our model from the results.
+# Get the metrics we care about for our model from the results.
 map_val = results["map"].item()
 map50 = results["map_50"].item()
+max_recall = results["mar_100"].item()
 
 print(f"Confidence threshold: {confidence}")
 print(f"Test set size: {len(test_loader.dataset)} frames")
@@ -73,3 +74,4 @@ print(f"Test set size: {len(test_loader.dataset)} frames")
 print("\n=== Metrics ===")
 print(f"mAP (IoU 0.50–0.95): {map_val:.4f}")
 print(f"mAP@50: {map50:.4f}")
+print(f"Max Recall @100: {max_recall:.4f}")
