@@ -9,8 +9,8 @@ train_loss = [0.3445, 0.2226, 0.1698]
 val_loss = [0.3077, 0.3116, 0.1518]
 epochs = [1,2,3]
 
-plt.plot(epochs, train_loss, label='Train Loss')
-plt.plot(epochs, val_loss, label='Val Loss')
+plt.plot(epochs, train_loss, color='purple', label='Train Loss')
+plt.plot(epochs, val_loss, color='orange', label='Val Loss')
 plt.legend()
 plt.savefig("Output/loss_graph.png")
 plt.show()
